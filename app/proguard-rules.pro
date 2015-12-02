@@ -20,3 +20,5 @@
 -keep class retrofit.** { *; }
 -keepattributes Signature
 -keepattributes Exceptions
+
+-dontwarn com.squareup.okhttp.**

@@ -1,5 +1,5 @@
 
-package alexandre.nakatani.rits.experimentlab;
+package alexandre.nakatani.rits.experimentlab.models;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;

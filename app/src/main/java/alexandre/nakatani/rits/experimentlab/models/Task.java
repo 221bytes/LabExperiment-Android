@@ -1,5 +1,5 @@
 
-package alexandre.nakatani.rits.experimentlab;
+package alexandre.nakatani.rits.experimentlab.models;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
@@ -11,7 +11,7 @@ public class Task {
     private String title;
     @SerializedName("_id")
     @Expose
-    private alexandre.nakatani.rits.experimentlab.Id Id;
+    private alexandre.nakatani.rits.experimentlab.models.Id Id;
 
     /**
      * 
@@ -36,7 +36,7 @@ public class Task {
      * @return
      *     The Id
      */
-    public alexandre.nakatani.rits.experimentlab.Id getId() {
+    public alexandre.nakatani.rits.experimentlab.models.Id getId() {
         return Id;
     }
 
@@ -45,7 +45,7 @@ public class Task {
      * @param Id
      *     The _id
      */
-    public void setId(alexandre.nakatani.rits.experimentlab.Id Id) {
+    public void setId(alexandre.nakatani.rits.experimentlab.models.Id Id) {
         this.Id = Id;
     }
 
