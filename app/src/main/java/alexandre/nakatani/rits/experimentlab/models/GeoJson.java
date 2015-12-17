@@ -53,7 +53,7 @@ public class GeoJson
 
     public enum Type
     {
-        POINT
+        POINT, POLYGON, POLYLINE
     }
 
 }

@@ -4,9 +4,11 @@ import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
 import java.util.ArrayList;
+import java.util.Enumeration;
 
 public class Event
 {
+
 
     @SerializedName("_id")
     @Expose
@@ -23,6 +25,9 @@ public class Event
     @SerializedName("geojson")
     @Expose
     private GeoJson mGeoJson;
+    @SerializedName("importance")
+    @Expose
+    private int mImportance;
 
 
     /**
@@ -105,5 +110,21 @@ public class Event
     public void setGeoJson(GeoJson geoJson)
     {
         mGeoJson = geoJson;
+    }
+
+    /**
+     * @return Importance
+     */
+    public int getImportance()
+    {
+        return mImportance;
+    }
+
+    /**
+     * @param importance
+     */
+    public void setImportance(int importance)
+    {
+        mImportance = importance;
     }
 }

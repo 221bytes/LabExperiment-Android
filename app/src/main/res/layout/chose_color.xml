@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:app="http://schemas.android.com/apk/res-auto"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:layout_gravity="center"
+              android:gravity="center"
+              android:orientation="horizontal"
+              app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+
+    <ImageButton
+        android:id="@+id/imageButtonGreen"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_margin="8dp"
+        android:background="@color/greenMarker"
+        android:onClick="onColorClick"/>
+
+    <ImageButton
+        android:id="@+id/imageButtonYellow"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_margin="8dp"
+        android:background="@color/yellowMarker"
+        android:onClick="onColorClick"/>
+
+    <ImageButton
+        android:id="@+id/imageButtonOrange"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_margin="8dp"
+        android:background="@color/orangeMarker"
+
+        android:onClick="onColorClick"/>
+
+    <ImageButton
+        android:id="@+id/imageButtonRed"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_margin="8dp"
+        android:background="@color/redMarker"
+        android:onClick="onColorClick"
+        />
+</LinearLayout>
