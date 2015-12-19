@@ -4,6 +4,7 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -63,7 +64,7 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
     private MainActivity mMainActivity;
     private Pictogram mPictogramSelected;
     private int mImportance;
-    private boolean isArea = false;
+    private GeoJson.Type mType = GeoJson.Type.POINT;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -83,22 +84,27 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
             @Override
             public void onClick(View v)
             {
-                if (isArea)
+                FloatingActionButton floatingActionButton = (FloatingActionButton) v;
+                switch (mType)
                 {
-                    FloatingActionButton floatingActionButton = (FloatingActionButton) v;
-                    floatingActionButton.setImageResource(R.drawable.ic_place_black_24dp);
-                    isArea = false;
-                    for (Marker marker : mAreaMarkers)
-                    {
-                        marker.remove();
-                    }
-                    mAreaMarkers.clear();
-                } else
-                {
-                    FloatingActionButton floatingActionButton = (FloatingActionButton) v;
-                    floatingActionButton.setImageResource(R.drawable.map_marker_radius);
-                    isArea = true;
-                    if (mCurrentMarker != null) mCurrentMarker.remove();
+                    case POINT:
+                        floatingActionButton.setImageResource(R.drawable.map_marker_radius);
+                        mType = GeoJson.Type.POLYGON;
+                        if (mCurrentMarker != null) mCurrentMarker.remove();
+                        break;
+                    case POLYGON:
+                        floatingActionButton.setImageResource(R.drawable.map_lines);
+                        mType = GeoJson.Type.POLYLINE;
+                        for (Marker marker : mAreaMarkers)
+                        {
+                            marker.remove();
+                        }
+                        mAreaMarkers.clear();
+                        break;
+                    case POLYLINE:
+                        floatingActionButton.setImageResource(R.drawable.ic_place_black_24dp);
+                        mType = GeoJson.Type.POINT;
+                        break;
                 }
             }
         });
@@ -133,6 +139,7 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
     public void onMapReady(GoogleMap googleMap)
     {
         mMap = googleMap;
+        mMap.setMyLocationEnabled(true);
         mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener()
         {
             @Override
@@ -157,10 +164,10 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
                     {
 
                     }
+
                     mContentMain.setVisibility(View.INVISIBLE);
                     mChoseColor.setVisibility(View.INVISIBLE);
                     mChosePictogram.setVisibility(View.VISIBLE);
-
                     // make the view visible and start the animation
 //                    if (anim != null) anim.start();
 
@@ -168,14 +175,9 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
                 {
                     if (mAreaMarkers.indexOf(marker) > -1)
                     {
-                        PolygonOptions polygonOptions = new PolygonOptions();
-                        polygonOptions.strokeColor(Color.RED);
-                        polygonOptions.fillColor(Color.BLUE);
-                        for (Marker markerArea : mAreaMarkers)
-                        {
-                            polygonOptions.add(markerArea.getPosition());
-                        }
-                        Polygon polygon = mMap.addPolygon(polygonOptions);
+                        mContentMain.setVisibility(View.INVISIBLE);
+                        mChoseColor.setVisibility(View.INVISIBLE);
+                        mChosePictogram.setVisibility(View.VISIBLE);
 
                     } else
                     {
@@ -194,18 +196,23 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
             @Override
             public void onMapClick(LatLng latLng)
             {
-                if (isArea)
+                switch (mType)
                 {
-                    MarkerOptions markerOptions = new MarkerOptions().position(latLng).title("");
-                    markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_place_black_24dp));
-                    mAreaMarkers.add(mMap.addMarker(markerOptions));
-                } else
-                {
-                    if (mCurrentMarker != null) mCurrentMarker.remove();
-                    mMarkerOptions.position(latLng);
-                    mCurrentMarker = mMap.addMarker(mMarkerOptions);
-                    mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+                    case POINT:
+                        if (mCurrentMarker != null) mCurrentMarker.remove();
+                        mMarkerOptions.position(latLng);
+                        mCurrentMarker = mMap.addMarker(mMarkerOptions);
+                        mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+                        break;
+                    case POLYGON:
+                        MarkerOptions markerOptions = new MarkerOptions().position(latLng).title("");
+                        markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_place_black_24dp));
+                        mAreaMarkers.add(mMap.addMarker(markerOptions));
+                        break;
+                    case POLYLINE:
+                        break;
                 }
+
             }
         });
         CustomInfoWindowAdapter customInfoWindowAdapter = new CustomInfoWindowAdapter(this, mEvents);
@@ -239,7 +246,17 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
                 mMap.setInfoWindowAdapter(customInfoWindowAdapter);
                 for (Event event : events)
                 {
-                    addMarkerToMap(event);
+                    switch (event.getGeoJson().getType())
+                    {
+                        case POINT:
+                            addMarkerToMap(event);
+                            break;
+                        case POLYGON:
+                            addPolygonToMap(event);
+                            break;
+                        case POLYLINE:
+                            break;
+                    }
                 }
             }
 
@@ -263,6 +280,37 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
                 RetrofitError retrofitError = error;
             }
         });
+    }
+
+    private void addPolygonToMap(Event event)
+    {
+        PolygonOptions polygonOptions = new PolygonOptions();
+        ArrayList<CustomLatLngs> customLatLngses = event.getGeoJson().getLatLng();
+        for (CustomLatLngs customLatLngs : customLatLngses)
+        {
+            LatLng latLng = new LatLng(customLatLngs.getLatitude(), customLatLngs.getLongitude());
+            polygonOptions.add(latLng);
+        }
+        switch (event.getImportance())
+        {
+            case 0:
+                polygonOptions.fillColor(ContextCompat.getColor(this, R.color.greenMarker));
+                break;
+            case 1:
+                polygonOptions.fillColor(ContextCompat.getColor(this, R.color.yellowMarker));
+                break;
+            case 2:
+                polygonOptions.fillColor(ContextCompat.getColor(this, R.color.orangeMarker));
+                break;
+            case 3:
+                polygonOptions.fillColor(ContextCompat.getColor(this, R.color.redMarker));
+                break;
+            default:
+                polygonOptions.fillColor(ContextCompat.getColor(this, R.color.greenMarker));
+                break;
+        }
+
+        Polygon polygon = mMap.addPolygon(polygonOptions);
     }
 
     @Override
@@ -372,6 +420,8 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
             case R.id.imageButtonRed:
                 mImportance = 3;
                 break;
+            default:
+                mImportance = 0;
         }
 
         postEvent();
@@ -382,28 +432,38 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
 
     private void postEvent()
     {
-        GeoJson geoJson = new GeoJson();
-        LatLng latLng = mMarkerOptions.getPosition();
-        geoJson.setType(GeoJson.Type.POINT);
-        ArrayList<CustomLatLngs> latLngs = new ArrayList<CustomLatLngs>();
-        latLngs.add(new CustomLatLngs(latLng));
-        geoJson.setLatLng(latLngs);
-        GetRequestService getRequestService = ServiceGenerator.createService(GetRequestService.class, "http://10.0.3.2:5000/todo/api/v1/");
         Event event = new Event();
-        event.setGeoJson(geoJson);
-        ArrayList<Pictogram> pictograms = new ArrayList<Pictogram>();
-        pictograms.add(mPictograms.get(0));
-        ArrayList<Pictogram> pictogramArrayList = new ArrayList<>();
-        pictogramArrayList.add(mPictogramSelected);
-        event.setPictograms(pictogramArrayList);
-        event.setImportance(mImportance);
+        switch (mType)
+        {
+            case POINT:
+                event = postPoint();
+                break;
+            case POLYGON:
+                event = postPolygon();
+                break;
+            case POLYLINE:
+                break;
+        }
+        GetRequestService getRequestService = ServiceGenerator.createService(GetRequestService.class, "http://10.0.3.2:5000/todo/api/v1/");
+
         getRequestService.postEvent(event, new Callback<Event>()
         {
             @Override
             public void success(Event event, Response response)
             {
-                addMarkerToMap(event);
-                mCurrentMarker.remove();
+                switch (mType)
+                {
+                    case POINT:
+                        addMarkerToMap(event);
+                        mCurrentMarker.remove();
+                        break;
+                    case POLYGON:
+                        drawPolygon();
+                        break;
+                    case POLYLINE:
+                        break;
+                }
+
             }
 
             @Override
@@ -412,6 +472,47 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
                 RetrofitError retrofitError = error;
             }
         });
+    }
+
+    private Event postPoint()
+    {
+        GeoJson geoJson = new GeoJson();
+        LatLng latLng = mMarkerOptions.getPosition();
+        geoJson.setType(GeoJson.Type.POINT);
+        ArrayList<CustomLatLngs> latLngs = new ArrayList<CustomLatLngs>();
+        latLngs.add(new CustomLatLngs(latLng));
+        geoJson.setLatLng(latLngs);
+        Event event = new Event();
+        event.setGeoJson(geoJson);
+        ArrayList<Pictogram> pictograms = new ArrayList<Pictogram>();
+        pictograms.add(mPictograms.get(0));
+        ArrayList<Pictogram> pictogramArrayList = new ArrayList<>();
+        pictogramArrayList.add(mPictogramSelected);
+        event.setPictograms(pictogramArrayList);
+        event.setImportance(mImportance);
+        return event;
+    }
+
+    private Event postPolygon()
+    {
+        GeoJson geoJson = new GeoJson();
+
+        geoJson.setType(GeoJson.Type.POLYGON);
+        ArrayList<CustomLatLngs> latLngs = new ArrayList<CustomLatLngs>();
+        for (Marker marker : mAreaMarkers)
+        {
+            latLngs.add(new CustomLatLngs(marker.getPosition()));
+        }
+        geoJson.setLatLng(latLngs);
+        Event event = new Event();
+        event.setGeoJson(geoJson);
+        ArrayList<Pictogram> pictograms = new ArrayList<Pictogram>();
+        pictograms.add(mPictograms.get(0));
+        ArrayList<Pictogram> pictogramArrayList = new ArrayList<>();
+        pictogramArrayList.add(mPictogramSelected);
+        event.setPictograms(pictogramArrayList);
+        event.setImportance(mImportance);
+        return event;
     }
 
     private void addMarkerToMap(Event event)
@@ -441,5 +542,18 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
                 break;
         }
         marker.setIcon(bitmapDescriptor);
+    }
+
+    private void drawPolygon()
+    {
+        PolygonOptions polygonOptions = new PolygonOptions();
+        polygonOptions.strokeColor(Color.RED);
+
+        for (Marker markerArea : mAreaMarkers)
+        {
+            polygonOptions.add(markerArea.getPosition());
+        }
+        Polygon polygon = mMap.addPolygon(polygonOptions);
+
     }
 }
