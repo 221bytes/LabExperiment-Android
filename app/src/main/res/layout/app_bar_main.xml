@@ -22,18 +22,19 @@
 
     </android.support.design.widget.AppBarLayout>
 
-    <include
-        android:id="@+id/chose_color"
-        layout="@layout/chose_color"/>
 
-    <include
-        android:id="@+id/chose_pictogram"
-        layout="@layout/chose_pictogram"/>
 
     <include
         android:id="@+id/content_main"
         layout="@layout/content_main"/>
 
+    <include
+        android:id="@+id/chose_pictogram"
+        layout="@layout/chose_pictogram"/>
+    <include
+        android:id="@+id/chose_color"
+        layout="@layout/chose_color"
+        />
 
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/fab"

@@ -101,7 +101,8 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
         String path = mDataset.get(position).getPath();
         ImageView imageView = holder.mImageView;
         ImageAware imageAware = new ImageViewAware(imageView, false);
-        mImageLoader.displayImage("http://10.0.3.2:5000" + path, imageAware, new ImageLoadingListener()
+//        mImageLoader.displayImage("http://10.0.3.2:5000" + path, imageAware, new ImageLoadingListener()
+        mImageLoader.displayImage("http://192.168.2.126:5000" + path, imageAware, new ImageLoadingListener()
         {
             @Override
             public void onLoadingStarted(String imageUri, View view)

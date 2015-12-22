@@ -1,9 +1,13 @@
 package alexandre.nakatani.rits.experimentlab;
 
-import android.graphics.Color;
+import android.Manifest;
+import android.animation.Animator;
+import android.content.pm.PackageManager;
+import android.graphics.Point;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -15,11 +19,13 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewAnimationUtils;
 import android.widget.ProgressBar;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.Projection;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
@@ -28,6 +34,8 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polygon;
 import com.google.android.gms.maps.model.PolygonOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.nostra13.universalimageloader.core.ImageLoader;
 import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
 
@@ -45,7 +53,6 @@ import retrofit.client.Response;
 
 public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOnPictogram, NavigationView.OnNavigationItemSelectedListener, OnMapReadyCallback, PictogramManager.PictogramsLoading
 {
-
     private GoogleMap mMap;
     private MarkerOptions mMarkerOptions;
     private Marker mCurrentMarker;
@@ -71,6 +78,7 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
     {
         super.onCreate(savedInstanceState);
         mMainActivity = this;
+        requestPerm();
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         mContentMain = findViewById(R.id.content_main);
@@ -103,7 +111,12 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
                         break;
                     case POLYLINE:
                         floatingActionButton.setImageResource(R.drawable.ic_place_black_24dp);
-                        mType = GeoJson.Type.POINT;
+                        mType = GeoJson.Type.POLYLINE;
+                        for (Marker marker : mAreaMarkers)
+                        {
+                            marker.remove();
+                        }
+                        mAreaMarkers.clear();
                         break;
                 }
             }
@@ -134,6 +147,60 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
         ImageLoader.getInstance().init(config);
     }
 
+    private void requestPerm()
+    {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+        {
+
+            // Should we show an explanation?
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION))
+            {
+
+                // Show an expanation to the user *asynchronously* -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+
+            } else
+            {
+
+                // No explanation needed, we can request the permission.
+
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 3);
+
+                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
+                // app-defined int constant. The callback method gets the
+                // result of the request.
+            }
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults)
+    {
+        switch (requestCode)
+        {
+            case 3:
+            {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED)
+                {
+
+                    // permission was granted, yay! Do the
+                    // contacts-related task you need to do.
+
+                } else
+                {
+
+                    // permission denied, boo! Disable the
+                    // functionality that depends on this permission.
+                }
+                return;
+            }
+
+            // other 'case' lines to check for other
+            // permissions this app might request
+        }
+    }
 
     @Override
     public void onMapReady(GoogleMap googleMap)
@@ -147,29 +214,33 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
             {
                 if (marker.equals(mCurrentMarker))
                 {
+                    Projection projection = mMap.getProjection();
+                    LatLng markerLocation = marker.getPosition();
+                    Point screenPosition = projection.toScreenLocation(markerLocation);
+
 
                     // get the center for the clipping circle
-                    int cx = mChosePictogram.getWidth() / 2;
-                    int cy = mChosePictogram.getHeight() / 2;
+                    int cx = screenPosition.x;
+                    int cy = screenPosition.y;
 
                     // get the final radius for the clipping circle
                     int finalRadius = Math.max(mChosePictogram.getWidth(), mChosePictogram.getHeight());
 
                     // create the animator for this view (the start radius is zero)
-                    //                    Animator anim = null;
+                    Animator anim = null;
                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP)
                     {
-//                        anim = ViewAnimationUtils.createCircularReveal(mChosePictogram, cx, cy, 0, finalRadius);
+                        anim = ViewAnimationUtils.createCircularReveal(mChosePictogram, cx, cy, 0, finalRadius);
                     } else
                     {
 
                     }
 
-                    mContentMain.setVisibility(View.INVISIBLE);
-                    mChoseColor.setVisibility(View.INVISIBLE);
+//                    mContentMain.setVisibility(View.INVISIBLE);
+//                    mChoseColor.setVisibility(View.INVISIBLE);
                     mChosePictogram.setVisibility(View.VISIBLE);
                     // make the view visible and start the animation
-//                    if (anim != null) anim.start();
+                    if (anim != null) anim.start();
 
                 } else
                 {
@@ -196,6 +267,7 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
             @Override
             public void onMapClick(LatLng latLng)
             {
+                MarkerOptions markerOptions;
                 switch (mType)
                 {
                     case POINT:
@@ -205,11 +277,14 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
                         mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
                         break;
                     case POLYGON:
-                        MarkerOptions markerOptions = new MarkerOptions().position(latLng).title("");
+                        markerOptions = new MarkerOptions().position(latLng).title("");
                         markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_place_black_24dp));
                         mAreaMarkers.add(mMap.addMarker(markerOptions));
                         break;
                     case POLYLINE:
+                        markerOptions = new MarkerOptions().position(latLng).title("");
+                        markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_place_black_24dp));
+                        mAreaMarkers.add(mMap.addMarker(markerOptions));
                         break;
                 }
 
@@ -218,7 +293,9 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
         CustomInfoWindowAdapter customInfoWindowAdapter = new CustomInfoWindowAdapter(this, mEvents);
         mMap.setInfoWindowAdapter(customInfoWindowAdapter);
 
-        final GetRequestService getRequestService = ServiceGenerator.createService(GetRequestService.class, "http://10.0.3.2:5000/todo/api/v1/");
+//        final GetRequestService getRequestService = ServiceGenerator.createService(GetRequestService.class, "http://10.0.3.2:5000/todo/api/v1/");
+        GetRequestService getRequestService = ServiceGenerator.createService(GetRequestService.class, "http://192.168.2.126:5000/todo/api/v1/");
+
         getRequestService.getPictograms(new Callback<ArrayList<Pictogram>>()
         {
             @Override
@@ -255,6 +332,7 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
                             addPolygonToMap(event);
                             break;
                         case POLYLINE:
+                            addPolylineToMap(event);
                             break;
                     }
                 }
@@ -280,6 +358,37 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
                 RetrofitError retrofitError = error;
             }
         });
+    }
+
+    private void addPolylineToMap(Event event)
+    {
+        PolylineOptions polylineOptions = new PolylineOptions();
+        ArrayList<CustomLatLngs> customLatLngses = event.getGeoJson().getLatLng();
+        for (CustomLatLngs customLatLngs : customLatLngses)
+        {
+            LatLng latLng = new LatLng(customLatLngs.getLatitude(), customLatLngs.getLongitude());
+            polylineOptions.add(latLng);
+        }
+        switch (event.getImportance())
+        {
+            case 0:
+                polylineOptions.color(ContextCompat.getColor(this, R.color.greenMarker));
+                break;
+            case 1:
+                polylineOptions.color(ContextCompat.getColor(this, R.color.yellowMarker));
+                break;
+            case 2:
+                polylineOptions.color(ContextCompat.getColor(this, R.color.orangeMarker));
+                break;
+            case 3:
+                polylineOptions.color(ContextCompat.getColor(this, R.color.redMarker));
+                break;
+            default:
+                polylineOptions.color(ContextCompat.getColor(this, R.color.greenMarker));
+                break;
+        }
+
+        Polyline polyline = mMap.addPolyline(polylineOptions);
     }
 
     private void addPolygonToMap(Event event)
@@ -442,9 +551,11 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
                 event = postPolygon();
                 break;
             case POLYLINE:
+                event = PostPolyline();
                 break;
         }
-        GetRequestService getRequestService = ServiceGenerator.createService(GetRequestService.class, "http://10.0.3.2:5000/todo/api/v1/");
+        GetRequestService getRequestService = ServiceGenerator.createService(GetRequestService.class, "http://192.168.2.126:5000/todo/api/v1/");
+//        GetRequestService getRequestService = ServiceGenerator.createService(GetRequestService.class, "http://10.0.3.2:5000/todo/api/v1/");
 
         getRequestService.postEvent(event, new Callback<Event>()
         {
@@ -458,9 +569,10 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
                         mCurrentMarker.remove();
                         break;
                     case POLYGON:
-                        drawPolygon();
+                        addPolygonToMap(event);
                         break;
                     case POLYLINE:
+                        addPolylineToMap(event);
                         break;
                 }
 
@@ -515,6 +627,28 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
         return event;
     }
 
+    private Event PostPolyline()
+    {
+        GeoJson geoJson = new GeoJson();
+
+        geoJson.setType(GeoJson.Type.POLYLINE);
+        ArrayList<CustomLatLngs> latLngs = new ArrayList<CustomLatLngs>();
+        for (Marker marker : mAreaMarkers)
+        {
+            latLngs.add(new CustomLatLngs(marker.getPosition()));
+        }
+        geoJson.setLatLng(latLngs);
+        Event event = new Event();
+        event.setGeoJson(geoJson);
+        ArrayList<Pictogram> pictograms = new ArrayList<Pictogram>();
+        pictograms.add(mPictograms.get(0));
+        ArrayList<Pictogram> pictogramArrayList = new ArrayList<>();
+        pictogramArrayList.add(mPictogramSelected);
+        event.setPictograms(pictogramArrayList);
+        event.setImportance(mImportance);
+        return event;
+    }
+
     private void addMarkerToMap(Event event)
     {
         CustomLatLngs customLatLngs = event.getGeoJson().getLatLng().get(0);
@@ -542,18 +676,5 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
                 break;
         }
         marker.setIcon(bitmapDescriptor);
-    }
-
-    private void drawPolygon()
-    {
-        PolygonOptions polygonOptions = new PolygonOptions();
-        polygonOptions.strokeColor(Color.RED);
-
-        for (Marker markerArea : mAreaMarkers)
-        {
-            polygonOptions.add(markerArea.getPosition());
-        }
-        Polygon polygon = mMap.addPolygon(polygonOptions);
-
     }
 }
