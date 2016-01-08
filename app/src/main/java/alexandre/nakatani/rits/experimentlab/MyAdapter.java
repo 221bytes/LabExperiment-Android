@@ -1,18 +1,19 @@
 package alexandre.nakatani.rits.experimentlab;
 
+import android.content.Context;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.support.v7.widget.RecyclerView;
+import android.util.LruCache;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 
-import com.nostra13.universalimageloader.core.ImageLoader;
-import com.nostra13.universalimageloader.core.assist.FailReason;
-import com.nostra13.universalimageloader.core.imageaware.ImageAware;
-import com.nostra13.universalimageloader.core.imageaware.ImageViewAware;
-import com.nostra13.universalimageloader.core.listener.ImageLoadingListener;
+
+import com.android.volley.toolbox.ImageLoader;
+import com.android.volley.toolbox.NetworkImageView;
+import com.android.volley.toolbox.Volley;
 
 import java.util.ArrayList;
 
@@ -23,8 +24,8 @@ import alexandre.nakatani.rits.experimentlab.models.Pictogram;
  */
 public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
 {
-
-    ArrayList<ClickOnPictogram> mClickOnPictograms = new ArrayList<>();
+    private Context mContext;
+    private ArrayList<ClickOnPictogram> mClickOnPictograms = new ArrayList<>();
 
 
     public interface ClickOnPictogram
@@ -46,7 +47,7 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
     }
 
     private ArrayList<Pictogram> mDataset;
-    private final ImageLoader mImageLoader;
+    private ImageLoader mImageLoader;
 
     // Provide a reference to the views for each data item
 // Complex data items may need more than one view per item, and
@@ -55,21 +56,22 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
     {
         // each data item is just a string in this case
         private View mView;
-        private ImageView mImageView;
+        private NetworkImageView mImageView;
 
         public ViewHolder(View v)
         {
             super(v);
             mView = v;
-            mImageView = (ImageView) v.findViewById(R.id.PictogramSelectedImageButton);
+            mImageView = (NetworkImageView) v.findViewById(R.id.PictogramSelectedImageButton);
         }
     }
 
     // Provide a suitable constructor (depends on the kind of dataset)
-    public MyAdapter(ArrayList<Pictogram> myDataset)
+    public MyAdapter(ArrayList<Pictogram> myDataset, Context context)
     {
         mDataset = myDataset;
-        mImageLoader = ImageLoader.getInstance();
+        mContext = context;
+        mImageLoader = MySingleton.getInstance(context).getImageLoader();
     }
 
     // Create new views (invoked by the layout manager)
@@ -99,35 +101,10 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
         // - get element from your dataset at this position
         // - replace the contents of the view with that element
         String path = mDataset.get(position).getPath();
-        ImageView imageView = holder.mImageView;
-        ImageAware imageAware = new ImageViewAware(imageView, false);
-//        mImageLoader.displayImage("http://10.0.3.2:5000" + path, imageAware, new ImageLoadingListener()
-        mImageLoader.displayImage("http://192.168.2.126:5000" + path, imageAware, new ImageLoadingListener()
-        {
-            @Override
-            public void onLoadingStarted(String imageUri, View view)
-            {
-
-            }
-
-            @Override
-            public void onLoadingFailed(String imageUri, View view, FailReason failReason)
-            {
-
-            }
-
-            @Override
-            public void onLoadingComplete(String imageUri, View view, Bitmap loadedImage)
-            {
-
-            }
-
-            @Override
-            public void onLoadingCancelled(String imageUri, View view)
-            {
-
-            }
-        });
+        NetworkImageView imageView = holder.mImageView;
+        mContext.getResources().getString(R.string.server_url);
+        String url = mContext.getResources().getString(R.string.server_url) + path;
+        imageView.setImageUrl(url, mImageLoader);
     }
 
     // Return the size of your dataset (invoked by the layout manager)
@@ -136,4 +113,9 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
     {
         return mDataset.size();
     }
+
+
 }
+
+
+

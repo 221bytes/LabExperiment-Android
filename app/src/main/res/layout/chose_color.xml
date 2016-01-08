@@ -4,9 +4,11 @@
               android:layout_width="match_parent"
               android:layout_height="match_parent"
               android:layout_gravity="center"
+              android:background="@color/whiteBackground"
               android:gravity="center"
-              android:visibility="invisible"
               android:orientation="horizontal"
+
+              android:visibility="invisible"
               app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
 

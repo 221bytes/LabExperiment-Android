@@ -7,4 +7,5 @@
     <color name="yellowMarker">#FFFF00</color>
     <color name="orangeMarker">#FF7F00</color>
     <color name="redMarker">#FF0000</color>
+    <color name="whiteBackground">#e8eaf6</color>
 </resources>
