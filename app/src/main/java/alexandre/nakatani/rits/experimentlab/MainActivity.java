@@ -36,6 +36,7 @@ import com.google.android.gms.maps.model.Polygon;
 import com.google.android.gms.maps.model.PolygonOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.maps.android.PolyUtil;
 
 import java.util.ArrayList;
 
@@ -189,6 +190,17 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
                 // If request is cancelled, the result arrays are empty.
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED)
                 {
+                    if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+                    {
+                        // TODO: Consider calling
+                        //    ActivityCompat#requestPermissions
+                        // here to request the missing permissions, and then overriding
+                        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                        //                                          int[] grantResults)
+                        // to handle the case where the user grants the permission. See the documentation
+                        // for ActivityCompat#requestPermissions for more details.
+                        return;
+                    }
                     mMap.setMyLocationEnabled(true);
 
                     // permission was granted, yay! Do the
@@ -267,20 +279,7 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
             // for ActivityCompat#requestPermissions for more details.
         } else mMap.setMyLocationEnabled(true);
 
-        mMap.setOnPolygonClickListener(new GoogleMap.OnPolygonClickListener()
-        {
-            @Override
-            public void onPolygonClick(Polygon polygon)
-            {
-                for (Polygon tmp : mPolygons)
-                {
-                    if (tmp.equals(polygon))
-                    {
-                        polygon.setFillColor(getResources().getColor(R.color.colorPrimary));
-                    }
-                }
-            }
-        });
+
         mMap.setOnMarkerClickListener(mOnMarkerClickListener);
 
 
@@ -290,13 +289,26 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
             public void onMapClick(LatLng latLng)
             {
                 MarkerOptions markerOptions;
+                for (Polygon polygon : mPolygons)
+                {
+                    if (PolyUtil.containsLocation(latLng, polygon.getPoints(), true))
+                    {
+                        moveCurrentMarker(latLng);
+                        mCurrentMarker.showInfoWindow();
+                        return;
+                    }
+                } for (Polyline polyline : mPolylines)
+            {
+                if (PolyUtil.isLocationOnPath(latLng, polyline.getPoints(), false, 5))
+                {
+                    polyline.setColor(getResources().getColor(R.color.colorPrimary));
+                    return;
+                }
+            }
                 switch (mType)
                 {
                     case POINT:
-                        if (mCurrentMarker != null) mCurrentMarker.remove();
-                        mMarkerOptions.position(latLng);
-                        mCurrentMarker = mMap.addMarker(mMarkerOptions);
-                        mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+                        moveCurrentMarker(latLng);
                         break;
                     case POLYGON:
                         markerOptions = new MarkerOptions().position(latLng).title("");
@@ -407,7 +419,6 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
                 polylineOptions.color(ContextCompat.getColor(this, R.color.greenMarker));
                 break;
         }
-        polylineOptions.clickable(true);
         Polyline polyline = mMap.addPolyline(polylineOptions);
         mPolylines.add(polyline);
     }
@@ -439,7 +450,6 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
                 polygonOptions.fillColor(ContextCompat.getColor(this, R.color.greenMarker));
                 break;
         }
-        polygonOptions.clickable(true);
         Polygon polygon = mMap.addPolygon(polygonOptions);
         mPolygons.add(polygon);
     }
@@ -662,8 +672,6 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
         geoJson.setLatLng(latLngs);
         Event event = new Event();
         event.setGeoJson(geoJson);
-        ArrayList<Pictogram> pictograms = new ArrayList<Pictogram>();
-        pictograms.add(mPictograms.get(0));
         ArrayList<Pictogram> pictogramArrayList = new ArrayList<>();
         pictogramArrayList.add(mPictogramSelected);
         event.setPictograms(pictogramArrayList);
@@ -698,5 +706,13 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
                 break;
         }
         marker.setIcon(bitmapDescriptor);
+    }
+
+    private void moveCurrentMarker(LatLng latLng)
+    {
+        if (mCurrentMarker != null) mCurrentMarker.remove();
+        mMarkerOptions.position(latLng);
+        mCurrentMarker = mMap.addMarker(mMarkerOptions);
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
     }
 }

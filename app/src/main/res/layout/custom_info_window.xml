@@ -14,12 +14,12 @@
      limitations under the License.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:background="@color/whiteBackground">
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:background="@color/whiteBackground"
+              android:orientation="horizontal">
 
-    <com.android.volley.toolbox.NetworkImageView
+    <ImageView
         android:id="@+id/badge"
         android:layout_width="50dp"
         android:layout_height="50dp"
@@ -40,7 +40,7 @@
             android:singleLine="true"
             android:textColor="#ff000000"
             android:textSize="14dp"
-            android:textStyle="bold" />
+            android:textStyle="bold"/>
 
         <TextView
             android:id="@+id/snippet"
@@ -49,6 +49,6 @@
             android:ellipsize="end"
             android:singleLine="true"
             android:textColor="#ff7f7f7f"
-            android:textSize="14dp" />
+            android:textSize="14dp"/>
     </LinearLayout>
 </LinearLayout>
