@@ -3,7 +3,9 @@ package alexandre.nakatani.rits.experimentlab.models;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
-public class Pictogram {
+//import io.realm.RealmObject;
+
+public class Pictogram{
 
     @SerializedName("name")
     @Expose

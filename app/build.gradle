@@ -49,4 +49,5 @@ dependencies {
         transitive = true;
     }
     compile 'com.google.maps.android:android-maps-utils:0.4'
+//    compile 'io.realm:realm-android:0.87.2'
 }

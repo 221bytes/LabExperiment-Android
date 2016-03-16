@@ -1,0 +1,14 @@
+[
+    {
+        "merged": "/home/necocityhunters/Project/Android/ExperimentLab/app/build/intermediates/res/merged/dev/debug/drawable-ldpi-v4/fire_fighter.png",
+        "source": "/home/necocityhunters/Project/Android/ExperimentLab/app/src/main/res/drawable-ldpi/fire_fighter.png"
+    },
+    {
+        "merged": "/home/necocityhunters/Project/Android/ExperimentLab/app/build/intermediates/res/merged/dev/debug/drawable-ldpi-v4/map_lines.png",
+        "source": "/home/necocityhunters/Project/Android/ExperimentLab/app/src/main/res/drawable-ldpi/map_lines.png"
+    },
+    {
+        "merged": "/home/necocityhunters/Project/Android/ExperimentLab/app/build/intermediates/res/merged/dev/debug/drawable-ldpi-v4/map_marker_radius.png",
+        "source": "/home/necocityhunters/Project/Android/ExperimentLab/app/src/main/res/drawable-ldpi/map_marker_radius.png"
+    }
+]

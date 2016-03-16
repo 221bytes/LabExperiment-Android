@@ -1,0 +1,14 @@
+[
+    {
+        "merged": "/home/necocityhunters/Project/Android/ExperimentLab/app/build/intermediates/res/merged/dev/debug/menu/main.xml",
+        "source": "/home/necocityhunters/Project/Android/ExperimentLab/app/src/main/res/menu/main.xml"
+    },
+    {
+        "merged": "/home/necocityhunters/Project/Android/ExperimentLab/app/build/intermediates/res/merged/dev/debug/menu/activity_main_drawer.xml",
+        "source": "/home/necocityhunters/Project/Android/ExperimentLab/app/src/main/res/menu/activity_main_drawer.xml"
+    },
+    {
+        "merged": "/home/necocityhunters/Project/Android/ExperimentLab/app/build/intermediates/res/merged/dev/debug/menu/menu_scrolling.xml",
+        "source": "/home/necocityhunters/Project/Android/ExperimentLab/app/src/main/res/menu/menu_scrolling.xml"
+    }
+]

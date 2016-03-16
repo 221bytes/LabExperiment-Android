@@ -2,8 +2,13 @@ package alexandre.nakatani.rits.experimentlab;
 
 import android.Manifest;
 import android.animation.Animator;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Point;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.LayerDrawable;
+import android.graphics.drawable.ShapeDrawable;
+import android.graphics.drawable.shapes.OvalShape;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
@@ -16,10 +21,13 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
+import android.util.SparseArray;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewAnimationUtils;
+import android.view.ViewGroup;
 import android.widget.ProgressBar;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -37,6 +45,11 @@ import com.google.android.gms.maps.model.PolygonOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.maps.android.PolyUtil;
+import com.google.maps.android.clustering.Cluster;
+import com.google.maps.android.clustering.ClusterManager;
+import com.google.maps.android.clustering.view.DefaultClusterRenderer;
+import com.google.maps.android.ui.IconGenerator;
+import com.google.maps.android.ui.SquareTextView;
 
 import java.util.ArrayList;
 
@@ -51,7 +64,7 @@ import retrofit.client.Response;
 
 //TODO implement this https://developers.google.com/maps/documentation/android-api/utility/
 
-public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOnPictogram, NavigationView.OnNavigationItemSelectedListener, OnMapReadyCallback, PictogramManager.PictogramsLoading
+public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOnPictogram, NavigationView.OnNavigationItemSelectedListener, OnMapReadyCallback, PictogramManager.PictogramsLoading, ClusterManager.OnClusterClickListener<Event>, ClusterManager.OnClusterInfoWindowClickListener<Event>, ClusterManager.OnClusterItemClickListener<Event>, ClusterManager.OnClusterItemInfoWindowClickListener<Event>
 {
     private GoogleMap mMap;
     private MarkerOptions mMarkerOptions;
@@ -75,6 +88,9 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
     private int mImportance;
     private GeoJson.Type mType = GeoJson.Type.POINT;
     private GetRequestService mGetRequestService;
+    //    private HeatmapTileProvider mProvider;
+//    private TileOverlay mOverlay;
+    private ClusterManager<Event> mEventClusterManager;
 
 
     @Override
@@ -120,7 +136,7 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
                         break;
                     case POLYLINE:
                         floatingActionButton.setImageResource(R.drawable.ic_place_black_24dp);
-                        mType = GeoJson.Type.POLYLINE;
+                        mType = GeoJson.Type.POINT;
                         for (Marker marker : mAreaMarkers)
                         {
                             marker.remove();
@@ -264,12 +280,179 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
         }
     };
 
+    private class EventRenderer extends DefaultClusterRenderer<Event>
+    {
+        //        private final IconGenerator mIconGenerator = new IconGenerator(getApplicationContext());
+        private final IconGenerator mClusterIconGenerator;
+        private final float mDensity;
+
+        private ShapeDrawable mColoredCircleBackground;
+        private SparseArray<BitmapDescriptor> mIcons = new SparseArray();
+        private Context mContext;
+
+//        private final ImageView mImageView;
+//        private final ImageView mClusterImageView;
+//        private final int mDimension;
+
+        public EventRenderer()
+        {
+            super(getApplicationContext(), mMap, mEventClusterManager);
+            this.mContext = getApplicationContext();
+            this.mDensity = mContext.getResources().getDisplayMetrics().density;
+            this.mClusterIconGenerator = new IconGenerator(mContext);
+            this.mClusterIconGenerator.setContentView(this.makeSquareTextView());
+            this.mClusterIconGenerator.setTextAppearance(com.google.maps.android.R.style.ClusterIcon_TextAppearance);
+            this.mClusterIconGenerator.setBackground(this.makeClusterBackground());
+
+//            View multiProfile = getLayoutInflater().inflate(R.layout.multi_profile, null);
+//            mClusterIconGenerator.setContentView(multiProfile);
+//            mClusterImageView = (ImageView) multiProfile.findViewById(R.id.image);
+//
+//            mImageView = new ImageView(getApplicationContext());
+//            mDimension = (int) getResources().getDimension(R.dimen.custom_profile_image);
+//            mImageView.setLayoutParams(new ViewGroup.LayoutParams(mDimension, mDimension));
+//            int padding = (int) getResources().getDimension(R.dimen.custom_profile_padding);
+//            mImageView.setPadding(padding, padding, padding, padding);
+//            mIconGenerator.setContentView(mImageView);
+        }
+
+        @Override
+        protected void onBeforeClusterRendered(Cluster<Event> cluster, MarkerOptions markerOptions)
+        {
+            // Main color
+            int clusterColor = mContext.getResources().getColor(R.color.greenMarker);
+
+            int bucket = this.getBucket(cluster);
+            BitmapDescriptor descriptor = this.mIcons.get(bucket);
+            if (descriptor == null)
+            {
+                this.mColoredCircleBackground.getPaint().setColor(clusterColor);
+                descriptor = BitmapDescriptorFactory.fromBitmap(this.mClusterIconGenerator.makeIcon(this.getClusterText(bucket)));
+                this.mIcons.put(bucket, descriptor);
+            }
+
+            markerOptions.icon(descriptor);
+        }
+
+        private LayerDrawable makeClusterBackground()
+        {
+            // Outline color
+
+            this.mColoredCircleBackground = new ShapeDrawable(new OvalShape());
+            ShapeDrawable outline = new ShapeDrawable(new OvalShape());
+//            outline.getPaint().setColor(clusterOutlineColor);
+            LayerDrawable background = new LayerDrawable(new Drawable[]{outline, this.mColoredCircleBackground});
+            int strokeWidth = (int) (this.mDensity * 3.0F);
+            background.setLayerInset(1, strokeWidth, strokeWidth, strokeWidth, strokeWidth);
+            return background;
+        }
+
+        private SquareTextView makeSquareTextView()
+        {
+            SquareTextView squareTextView = new SquareTextView(getApplicationContext());
+            ViewGroup.LayoutParams layoutParams = new ViewGroup.LayoutParams(-2, -2);
+            squareTextView.setLayoutParams(layoutParams);
+            squareTextView.setId(com.google.maps.android.R.id.text);
+            int twelveDpi = (int) (12.0F * this.mDensity);
+            squareTextView.setPadding(twelveDpi, twelveDpi, twelveDpi, twelveDpi);
+            return squareTextView;
+        }
+
+        @Override
+        protected void onBeforeClusterItemRendered(Event event, MarkerOptions markerOptions)
+        {
+            // Draw a single person.
+            // Set the info window to show their name.
+
+            BitmapDescriptor bitmapDescriptor;
+            switch (event.getImportance())
+            {
+                case 0:
+                    bitmapDescriptor = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN);
+                    break;
+                case 1:
+                    bitmapDescriptor = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW);
+                    break;
+                case 2:
+                    bitmapDescriptor = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE);
+                    break;
+                case 3:
+                    bitmapDescriptor = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED);
+                    break;
+                default:
+                    bitmapDescriptor = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE);
+                    break;
+            }
+//        marker.setIcon(bitmapDescriptor);
+            markerOptions.icon(bitmapDescriptor);
+
+        }
+
+
+        @Override
+        protected boolean shouldRenderAsCluster(Cluster cluster)
+        {
+            // Always render clusters.
+            return cluster.getSize() > 1;
+        }
+    }
+
+
+    @Override
+    public boolean onClusterClick(Cluster<Event> cluster)
+    {
+        return false;
+    }
+
+    @Override
+    public void onClusterInfoWindowClick(Cluster<Event> cluster)
+    {
+
+    }
+
+    @Override
+    public boolean onClusterItemClick(Event event)
+    {
+        return false;
+    }
+
+    @Override
+    public void onClusterItemInfoWindowClick(Event event)
+    {
+
+    }
+
+    private int getColorFromImportance(int importance)
+    {
+        int retVal;
+        switch (importance)
+        {
+            case 0:
+                retVal = getResources().getColor(R.color.greenMarker);
+                break;
+            case 1:
+                retVal = getResources().getColor(R.color.yellowMarker);
+                break;
+            case 2:
+                retVal = getResources().getColor(R.color.orangeMarker);
+                break;
+            case 3:
+                retVal = getResources().getColor(R.color.redMarker);
+                break;
+            default:
+                retVal = getResources().getColor(R.color.yellowMarker);
+                break;
+        }
+        return retVal;
+    }
+
     @Override
     public void onMapReady(GoogleMap googleMap)
     {
         mMap = googleMap;
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)
         {
+
             // TODO: Consider calling
             //    ActivityCompat#requestPermissions
             // here to request the missing permissions, and then overriding
@@ -280,8 +463,13 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
         } else mMap.setMyLocationEnabled(true);
 
 
-        mMap.setOnMarkerClickListener(mOnMarkerClickListener);
+//        mMap.setOnMarkerClickListener(mOnMarkerClickListener);
 
+        mEventClusterManager = new ClusterManager<Event>(this, mMap);
+
+        mEventClusterManager.setRenderer(new EventRenderer());
+        mMap.setOnCameraChangeListener(mEventClusterManager);
+        mMap.setOnMarkerClickListener(mEventClusterManager);
 
         mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener()
         {
@@ -297,14 +485,15 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
                         mCurrentMarker.showInfoWindow();
                         return;
                     }
-                } for (Polyline polyline : mPolylines)
-            {
-                if (PolyUtil.isLocationOnPath(latLng, polyline.getPoints(), false, 5))
-                {
-                    polyline.setColor(getResources().getColor(R.color.colorPrimary));
-                    return;
                 }
-            }
+                for (Polyline polyline : mPolylines)
+                {
+                    if (PolyUtil.isLocationOnPath(latLng, polyline.getPoints(), false, 5))
+                    {
+                        polyline.setColor(getResources().getColor(R.color.colorPrimary));
+                        return;
+                    }
+                }
                 switch (mType)
                 {
                     case POINT:
@@ -337,12 +526,22 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
                 mAdapter = new MyAdapter(mPictograms, getApplicationContext());
                 mAdapter.addListener(mMainActivity);
                 mRecyclerView.setAdapter(mAdapter);
+                Pictogram pictogram = pictograms.get(0);
+// Get a Realm instance for this thread
+//                Realm realm = Realm.getInstance(mMainActivity);
+//
+//// Persist your data easily
+//                realm.beginTransaction();
+//                realm.copyToRealm(pictogram);
+//                realm.commitTransaction();
+
+// Query and use the result in an
             }
 
             @Override
             public void failure(RetrofitError error)
             {
-
+                Log.d("error picto = ", error.toString());
             }
         });
         mGetRequestService.getEvent(new Callback<ArrayList<Event>>()
@@ -368,6 +567,8 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
                             break;
                     }
                 }
+
+
             }
 
             @Override
@@ -419,9 +620,13 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
                 polylineOptions.color(ContextCompat.getColor(this, R.color.greenMarker));
                 break;
         }
-        Polyline polyline = mMap.addPolyline(polylineOptions);
-        mPolylines.add(polyline);
+//        mProvider = new HeatmapTileProvider.Builder().data(polylineOptions.getPoints()).build();
+        // Add a tile overlay to the map, using the heat map tile provider.
+//        mOverlay = mMap.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider));
+//        Polyline polyline = mMap.addPolyline(polylineOptions);
+//        mPolylines.add(polyline);
     }
+
 
     private void addPolygonToMap(Event event)
     {
@@ -682,30 +887,25 @@ public class MainActivity extends AppCompatActivity implements MyAdapter.ClickOn
 
     private void addMarkerToMap(Event event)
     {
-        CustomLatLngs customLatLngs = event.getGeoJson().getLatLng().get(0);
-        LatLng latLng = new LatLng(customLatLngs.getLatitude(), customLatLngs.getLongitude());
-        Marker marker = mMap.addMarker(new MarkerOptions().position(latLng));
 
-        BitmapDescriptor bitmapDescriptor;
         switch (event.getImportance())
         {
             case 0:
-                bitmapDescriptor = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN);
+                mEventClusterManager.addItem(event);
                 break;
             case 1:
-                bitmapDescriptor = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW);
+                mEventClusterManager.addItem(event);
                 break;
             case 2:
-                bitmapDescriptor = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE);
+                mEventClusterManager.addItem(event);
                 break;
             case 3:
-                bitmapDescriptor = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED);
+                mEventClusterManager.addItem(event);
                 break;
             default:
-                bitmapDescriptor = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE);
+                mEventClusterManager.addItem(event);
                 break;
         }
-        marker.setIcon(bitmapDescriptor);
     }
 
     private void moveCurrentMarker(LatLng latLng)

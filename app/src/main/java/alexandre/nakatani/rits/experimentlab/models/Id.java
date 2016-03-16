@@ -4,7 +4,9 @@ package alexandre.nakatani.rits.experimentlab.models;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
-public class Id {
+//import io.realm.RealmObject;
+
+public class Id{
 
     @SerializedName("$oid")
     @Expose

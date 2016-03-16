@@ -1,5 +1,6 @@
 package alexandre.nakatani.rits.experimentlab.models;
 
+import com.google.android.gms.maps.model.LatLng;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
@@ -54,6 +55,12 @@ public class GeoJson
     public enum Type
     {
         POINT, POLYGON, POLYLINE
+    }
+
+    public LatLng getClassicLatLng()
+    {
+        LatLng latLng = new LatLng(mLatLng.get(0).getLatitude(), mLatLng.get(0).getLongitude());
+        return latLng;
     }
 
 }

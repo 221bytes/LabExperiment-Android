@@ -274,7 +274,6 @@ public class PictogramManager
 
     }
 
-
     public void run(Pictogram pictogram) throws Exception
     {
         String url = pictogram.getPath();
